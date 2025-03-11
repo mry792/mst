@@ -1,0 +1,114 @@
+[tool.poetry]
+name = "gst"
+version = "0.0.1"
+description = ""
+authors = ["M. Emery Goss <m.goss792@gmail.com>"]
+
+[tool.poetry.dependencies]
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.5.3"
+pytest-ruff = "^0.4.1"
+ruff = "^0.9.10"
+pytest-asyncio = "^0.25.3"
+
+[tool.pytest.ini_options]
+addopts = ["--import-mode=importlib"]
+pythonpath = ["src"]
+
+[tool.pyright]
+# # https://github.com/microsoft/pyright/blob/main/docs/configuration.md
+# useLibraryCodeForTypes = true
+exclude = ["*"]
+
+[tool.ruff]
+target-version = "py310"
+src = ["src"]
+exclude = [
+    "src/__pycache__",
+    ".*cache",
+    ".pythonlibs",
+    "desired.py",
+]
+# https://beta.ruff.rs/docs/configuration/
+
+[tool.ruff.format]
+skip-magic-trailing-comma = true
+
+[tool.ruff.lint]
+select = [
+    "E", "W",  # pycodestyle
+    "F",       # Pyflakes
+    "C90",     # mccabe
+    "I",       # isort
+    "N",       # pep8-naming
+    "D",       # pydocstyle
+    "UP",      # pyupgrade
+    "YTT",     # flake8-2020
+    # "ANN",     # flake8-annotations
+    "ASYNC",   # flake8-async
+    "FBT",     # flake8-boolean-trap
+    "B",       # flake8-bugbear
+    "A",       # flake8-builtins
+    "COM",     # flake8-commas
+    "C4",      # flake8-comprehensions
+    "DTZ",     # flake8-datetimez
+    "T10",     # flake8-debugger
+    "EXE",     # flake8-executable
+    "FA",      # flake8-future-annotations
+    "ISC",     # flake8-implicit-str-concat
+    "LOG",     # flake8-logging
+    "G",       # flake8-logging-format
+    "PIE",     # flake8-pie
+    "T20",     # flake8-print
+    "PYI",     # flake8-pyi
+    "PT",      # flake8-pytest-style
+    "Q",       # flake8-quotes
+    "RET",     # flake8-return
+    "SLF",     # flake8-self
+    "SLOT",    # flake8-slots
+    "SIM",     # flake8-simplify
+    "TID252",  # flake8-tidy-imports -- relative-imports
+    "TCH",     # flake8-type-checking
+    "ARG",     # flake8-unused-arguments
+    "PTH",     # flake8-use-pathlib
+    "PGH",     # pygrep-hooks
+    "PL",      # pylint
+    "TRY",     # tryceratops
+    "FLY",     # flynt
+    "PERF",    # Perflint
+    "FURB",    # refurb
+    "RUF",     # Ruff-specific rules
+]
+ignore = [
+    # Groups not enabled:
+    "DJ",      # flake8-django
+    "EM",      # flake8-errmsg
+    "ICN",     # flake8-import-convention
+    "INP",     # flake8-no-pep420
+    "RSE",     # flake8-raise
+    "TID",     # flake8-tidy-imports
+    "INT",     # flake8-gettext
+    "NPY",     # NumPy
+    "AIR",     # Airflow
+
+    # Specific checks not enabled:
+    "D202",    # no-blank-line-after-function
+    "D203",    # one-blank-line-before-class
+    "D212",    # multi-line-summary-first-line
+    "W291",
+    "W292",
+    "W293",
+    "G003",    # logging-string-concat
+    "G004",    # logging-f-string
+    "SIM107",  # return-in-try-except-finally (maybe enable this)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**.py" = [
+    "D",       # pydocstyle
+]
+
+[build-system]
+requires = ["poetry-core>=2.0.0"]
+build-backend = "poetry.core.masonry.api"
