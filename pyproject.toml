@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "gst"
+name = "mst"
 version = "0.0.1"
 description = ""
 authors = ["M. Emery Goss <m.goss792@gmail.com>"]
