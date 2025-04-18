@@ -1,10 +1,10 @@
-[tool.poetry]
+[project]
 name = "mst"
 version = "0.0.1"
 description = ""
-authors = ["M. Emery Goss <m.goss792@gmail.com>"]
-
-[tool.poetry.dependencies]
+authors = [
+    {name = "M. Emery Goss", email = "m.goss792@gmail.com"}
+]
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.5.3"
