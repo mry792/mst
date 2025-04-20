@@ -5,12 +5,18 @@ description = ""
 authors = [
     {name = "M. Emery Goss", email = "m.goss792@gmail.com"}
 ]
+requires-python = ">=3.12,<3.13"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.5.3"
+pyright = "^1.1.399"
+pytest = "^8.3.5"
+pytest-asyncio = "^0.26.0"
 pytest-ruff = "^0.4.1"
 ruff = "^0.9.10"
-pytest-asyncio = "^0.25.3"
+
+[tool.poetry.dependencies]
+anyio = "^4.9.0"
+pygit2 = "^1.17.0"
 
 [tool.pytest.ini_options]
 addopts = ["--import-mode=importlib"]
