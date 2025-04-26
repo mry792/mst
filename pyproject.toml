@@ -28,8 +28,9 @@ pythonpath = ["src"]
 exclude = ["*"]
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py312"
 src = ["src"]
+line-length = 80
 exclude = [
     "src/__pycache__",
     ".*cache",
@@ -39,6 +40,7 @@ exclude = [
 # https://beta.ruff.rs/docs/configuration/
 
 [tool.ruff.format]
+docstring-code-format = true
 skip-magic-trailing-comma = true
 
 [tool.ruff.lint]
