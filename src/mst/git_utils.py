@@ -5,6 +5,20 @@ from enum import Enum, auto, unique
 from pygit2 import Commit, Oid
 
 
+def is_grafted(commit: Commit) -> bool:
+    expected_parent_ids: set[Oid] = set()
+    for line in commit.read_raw().decode().splitlines():
+        tokens = line.split()
+        if tokens and tokens[0] == "parent":
+            expected_parent_ids.add(Oid(hex=tokens[1]))
+
+    found_parent_ids = set(commit.parent_ids)
+    if len(found_parent_ids - expected_parent_ids) > 0:
+        raise RuntimeError("Found unexpected parents.")
+
+    return len(expected_parent_ids - found_parent_ids) > 0
+
+
 @unique
 class VisitStatus(Enum):
     NOT_VISITED = auto()
