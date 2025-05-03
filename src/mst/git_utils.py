@@ -3,6 +3,33 @@ from dataclasses import dataclass
 from enum import Enum, auto, unique
 
 from pygit2 import Commit, Oid
+from pygit2.repository import Repository
+
+
+class GitError(RuntimeError):
+    pass
+
+
+class UnexpectedParentsError(GitError):
+    def __init__(self):
+        super().__init__("Found unexpected parents.")
+
+
+class ReferenceNotFoundError(GitError):
+    def __init__(self, name: str):
+        super().__init__(f"No reference '{name}'.")
+
+
+class GraftedError(GitError):
+    def __init__(self, id: Oid):
+        super().__init__(f"Commit is grafted: {id.hex}")
+
+
+def find_commit_for_ref(repo: Repository, name: str) -> Commit:
+    ref = repo.lookup_reference(name)
+    if ref is None:
+        raise ReferenceNotFoundError(name)
+    return ref.peel(Commit)
 
 
 def is_grafted(commit: Commit) -> bool:
@@ -14,7 +41,7 @@ def is_grafted(commit: Commit) -> bool:
 
     found_parent_ids = set(commit.parent_ids)
     if len(found_parent_ids - expected_parent_ids) > 0:
-        raise RuntimeError("Found unexpected parents.")
+        raise UnexpectedParentsError()
 
     return len(expected_parent_ids - found_parent_ids) > 0
 
@@ -28,12 +55,14 @@ class VisitStatus(Enum):
 
 @dataclass
 class DfsActions:
-    should_visit: Callable[[Commit], bool] | None = None
+    pre_visit: Callable[[Commit], bool] | None = None
     post_visit: Callable[[Commit], None] | None = None
 
 
 def _dfs_visit_commit(
-    current: Commit, commit_visits: dict[Oid, VisitStatus], actions: DfsActions
+    current: Commit,
+    commit_visits: dict[Oid, VisitStatus],
+    actions: DfsActions,
 ):
     current_status = commit_visits.get(current.id, VisitStatus.NOT_VISITED)
     if current_status == VisitStatus.VISITED:
@@ -41,7 +70,7 @@ def _dfs_visit_commit(
     if current_status == VisitStatus.VISITING:
         raise RuntimeError(f"cycle at {current}")
 
-    if actions.should_visit and not actions.should_visit(current):
+    if actions.pre_visit and not actions.pre_visit(current):
         return
 
     commit_visits[current.id] = VisitStatus.VISITING
