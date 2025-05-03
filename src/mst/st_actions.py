@@ -1,9 +1,15 @@
+import logging
 from dataclasses import dataclass
+from functools import singledispatch
 from pathlib import Path
 
 import yaml
-from functools import singledispatch
 from pygit2 import Oid
+from pygit2.repository import Repository
+
+from mst.helpers import make_notes_branch_name
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -78,3 +84,31 @@ def _(action: StNew) -> str:
 @serialize_st_action.register
 def _(action: StMove) -> str:
     return f"move: {action.new_prefix}"
+
+
+def record_actions(
+    repo: Repository,
+    project_name: str,
+    actions: dict[Oid, StAction],
+    remote_name: str = "origin",
+):
+    remote = repo.remotes[remote_name]
+    notes_branch_name = make_notes_branch_name(project_name)
+    notes_refspec = f"{notes_branch_name}:{notes_branch_name}"
+
+    logger.debug(f'Fetching existing notes for subtree "{project_name}".')
+    remote.fetch([notes_refspec], depth=1)  # TODO: Might fail?
+
+    for cid, action in actions.items():
+        note_text = serialize_st_action(action)
+        logger.debug(f'Adding note to "{cid.hex}":\n{note_text}')
+        repo.create_note(
+            note_text,
+            author=repo.default_signature,
+            committer=repo.default_signature,
+            annotated_id=cid.hex,
+            ref=notes_branch_name,
+        )
+
+    logger.info(f'Notes created. Pushing to remote "{remote_name}".')
+    remote.push([notes_refspec])
