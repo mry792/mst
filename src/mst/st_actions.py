@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import yaml
+from functools import singledispatch
 from pygit2 import Oid
 
 
@@ -54,3 +55,26 @@ def parse_st_action(text: str, project_name: str, cid: Oid) -> StAction:
         )
 
     raise YamlParseKeysError(project_name, cid, keys)
+
+
+@singledispatch
+def serialize_st_action(action: StAction) -> str:
+    raise NotImplementedError
+
+
+@serialize_st_action.register
+def _(action: StCommitMapping) -> str:
+    return (
+        f"prefix: {action.prefix}\n"
+        f"subtree_commit: {action.subtree_commit_id.hex}"
+    )
+
+
+@serialize_st_action.register
+def _(action: StNew) -> str:
+    return f"new: {action.prefix}"
+
+
+@serialize_st_action.register
+def _(action: StMove) -> str:
+    return f"move: {action.new_prefix}"
