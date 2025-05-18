@@ -1,3 +1,5 @@
+import logging
+
 from pygit2 import Commit, Oid
 from pygit2.repository import Repository
 
@@ -12,9 +14,20 @@ from mst.git_utils import (
 from mst.helpers import ProjectMetadata, make_notes_branch_name
 from mst.st_actions import StAction, StCommitMapping, StNew, parse_st_action
 
+logger = logging.getLogger(__name__)
+
+
 # @dataclass
 # class ExtractionInput:
 #     host_commits: list[HostCommit] = field(default_factory=list)
+
+
+class NoDepthError(RuntimeError):
+    def __init__(self):
+        super().__init__(
+            "No depth specified but ran into grafted commit. Cannot continue "
+            "extraction.",
+        )
 
 
 class ExtractPrepper:
@@ -22,23 +35,21 @@ class ExtractPrepper:
         self,
         repo: Repository,
         tag_name: str,
-        initial_depth: int = 4,
-        src_branch: str = "dev",
+        initial_depth: int = 0,
         remote_name: str = "origin",
     ):
         self._next_depth = initial_depth
         self._repo = repo
-        self._src_branch = src_branch
         self._remote_name = remote_name
 
-        self._start_commit = find_commit_for_ref(repo, f"refs/tags/{tag_name}")
+        self._start_cid = find_commit_for_ref(repo, f"refs/tags/{tag_name}").id
 
     def _deepen(self):
-        src_ref = f"refs/heads/{self._src_branch}"
-        dest_ref = f"refs/remotes/{self._remote_name}/{self._src_branch}"
+        if self._next_depth == 0:
+            raise NoDepthError()
 
         self._repo.remotes[self._remote_name].fetch(
-            refspecs=[f"{src_ref}:{dest_ref}"],
+            refspecs=[f"{self._start_cid.hex}"],
             depth=int(self._next_depth),
         )
 
@@ -86,8 +97,12 @@ class ExtractPrepper:
             cid = commit.id
             actions.append((cid, actions_unsorted.pop(cid)))
 
+        start_commit = self._repo[self._start_cid]
+        if not isinstance(start_commit, Commit):
+            raise TypeError  # This should not be reachable.
+
         dfs(
-            self._start_commit,
+            start_commit,
             DfsActions(
                 pre_visit=_pre_visit,
                 post_visit=_post_visit,
@@ -97,18 +112,26 @@ class ExtractPrepper:
         return Extractor(repo=self._repo, mappings=roots, actions=actions)
 
     def prepare(self, project: ProjectMetadata) -> Extractor:
+        logger.info(f"({project.name}) identifying commits")
+
         while True:
             try:
                 extractor = self._load_extractor(project.name)
                 break
             except GraftedError:
+                logger.info(
+                    "Found unextracted grafted commit. Need more commits. "
+                    f"Fetching to depth {int(self._next_depth)}.",
+                )
                 self._deepen()
 
         # Ensure roots are available.
+        logger.info(f"({project.name}) creating mst remote")
         subtree_remote = self._repo.remotes.create(
             f"mst/{project.name}",
             f"ssh://gitlab.com/{project.remote}",
         )
+        logger.info(f"({project.name}) fetching root commits for extraction")
         subtree_remote.fetch(
             [
                 mapping.subtree_commit_id.hex
