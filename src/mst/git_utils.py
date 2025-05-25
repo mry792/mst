@@ -21,8 +21,13 @@ class ReferenceNotFoundError(GitError):
 
 
 class GraftedError(GitError):
-    def __init__(self, id: Oid):
-        super().__init__(f"Commit is grafted: {id.hex}")
+    def __init__(self, oid: Oid):
+        super().__init__(f"Commit is grafted: {oid.hex}")
+
+
+class CycleError(GitError):
+    def __init__(self, commit: Commit):
+        super().__init__(f"Commit cycle found at {commit}.")
 
 
 def find_commit_for_ref(repo: Repository, name: str) -> Commit:
@@ -68,7 +73,7 @@ def _dfs_visit_commit(
     if current_status == VisitStatus.VISITED:
         return
     if current_status == VisitStatus.VISITING:
-        raise RuntimeError(f"cycle at {current}")
+        raise CycleError(current)
 
     if actions.pre_visit and not actions.pre_visit(current):
         return

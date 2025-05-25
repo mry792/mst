@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-import click  # type: ignore
+import click  # type: ignore (reportMissingImports)
 from pygit2 import Oid
 from pygit2.repository import Repository
 

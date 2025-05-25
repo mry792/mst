@@ -65,6 +65,7 @@ def parse_st_action(text: str, project_name: str, cid: Oid) -> StAction:
 
 @singledispatch
 def serialize_st_action(action: StAction) -> str:
+    # Function signature - not implemented.
     raise NotImplementedError
 
 
