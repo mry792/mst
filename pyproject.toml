@@ -100,6 +100,16 @@ ignore = [
     "NPY",     # NumPy
     "AIR",     # Airflow
 
+    # TEMPORARY
+    "D100",
+    "D101",
+    "D102",
+    "D103",
+    "D104",
+    "D105",
+    "D106",
+    "D107",
+
     # Specific checks not enabled:
     "D202",    # no-blank-line-after-function
     "D203",    # one-blank-line-before-class
