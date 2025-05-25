@@ -7,7 +7,7 @@ import yaml
 from pygit2 import Oid
 from pygit2.repository import Repository
 
-from mst.helpers import make_notes_branch_name
+from mst.helpers import NOTES_BRANCH_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -93,8 +93,7 @@ def record_actions(
     remote_name: str = "origin",
 ):
     remote = repo.remotes[remote_name]
-    notes_branch_name = make_notes_branch_name(project_name)
-    notes_refspec = f"{notes_branch_name}:{notes_branch_name}"
+    notes_refspec = f"{NOTES_BRANCH_NAME}:{NOTES_BRANCH_NAME}"
 
     logger.debug(f'Fetching existing notes for subtree "{project_name}".')
     remote.fetch([notes_refspec], depth=1)  # TODO: Might fail?
@@ -107,7 +106,7 @@ def record_actions(
             author=repo.default_signature,
             committer=repo.default_signature,
             annotated_id=cid.hex,
-            ref=notes_branch_name,
+            ref=NOTES_BRANCH_NAME,
         )
 
     logger.info(f'Notes created. Pushing to remote "{remote_name}".')

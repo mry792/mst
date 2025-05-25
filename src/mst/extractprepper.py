@@ -11,7 +11,7 @@ from mst.git_utils import (
     find_commit_for_ref,
     is_grafted,
 )
-from mst.helpers import ProjectMetadata, make_notes_branch_name
+from mst.helpers import NOTES_BRANCH_NAME, ProjectMetadata
 from mst.st_actions import StAction, StCommitMapping, StNew, parse_st_action
 
 logger = logging.getLogger(__name__)
@@ -63,10 +63,7 @@ class ExtractPrepper:
         project_name: str,
         host_commit_id: Oid,
     ) -> StAction:
-        note = self._repo.lookup_note(
-            host_commit_id.hex,
-            ref=make_notes_branch_name(project_name),
-        )
+        note = self._repo.lookup_note(host_commit_id.hex, ref=NOTES_BRANCH_NAME)
         if note is None:
             return None
         return parse_st_action(note.message, project_name, host_commit_id)

@@ -8,8 +8,7 @@ HostCommit = NewType("HostCommit", Commit)
 SubtreeCommit = NewType("SubtreeCommit", Commit)
 
 
-def make_notes_branch_name(project_name: str):
-    return f"refs/notes/mst/{project_name}"
+NOTES_BRANCH_NAME = "refs/notes/mst"
 
 
 @dataclass(frozen=True)
