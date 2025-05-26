@@ -25,10 +25,15 @@ class StNew:
 
 @dataclass(frozen=True)
 class StMove:
+    old_prefix: Path
     new_prefix: Path
 
 
-type StAction = StCommitMapping | StNew | StMove | None
+class StExtract:
+    pass
+
+
+type StAction = StCommitMapping | StNew | StMove | StExtract
 
 
 class YamlParseTypeError(RuntimeError):
