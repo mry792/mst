@@ -12,7 +12,13 @@ from mst.git_utils import (
     is_grafted,
 )
 from mst.helpers import NOTES_BRANCH_NAME, ProjectMetadata
-from mst.st_actions import StAction, StCommitMapping, StNew, parse_st_action
+from mst.st_actions import (
+    StAction,
+    StCommitMapping,
+    StExtract,
+    StNew,
+    st_action_from_record,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +72,7 @@ class ExtractPrepper:
         note = self._repo.lookup_note(host_commit_id.hex, ref=NOTES_BRANCH_NAME)
         if note is None:
             return StExtract()
-        return parse_st_action(note.message, project_name, host_commit_id)
+        return st_action_from_record(note.message, project_name, host_commit_id)
 
     def _load_extractor(self, project_name: str) -> Extractor:
         roots: dict[Oid, StCommitMapping] = {}

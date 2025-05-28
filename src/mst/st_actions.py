@@ -45,24 +45,28 @@ class YamlParseKeysError(RuntimeError):
     def __init__(self, project_name: str, cid: Oid, keys: set[str]):
         super().__init__(
             f"Unexpected keys in note 'refs/notes/mst/{project_name}:"
-            f"{cid.hex}': {keys}"
+            f"{cid.hex}': {keys}",
         )
 
 
-def parse_st_action(text: str, project_name: str, cid: Oid) -> StAction:
+def st_action_from_record(text: str, project_name: str, cid: Oid) -> StAction:
     data = yaml.safe_load(text)
     if not isinstance(data, dict):
         raise YamlParseTypeError(type(data))
 
-    keys = set(data.keys())
+    project_data = data.get(project_name, None)
+    if project_data is None:
+        return StExtract()
+
+    keys = set(project_data.keys())
     if keys == {"add"}:
-        return StNew(Path(data["add"]))
+        return StNew(Path(project_data["add"]))
     if keys == {"move"}:
-        return StMove(Path(data["move"]))
+        return StMove(Path(project_data["move"]))
     if keys == {"prefix", "subtree_commit"}:
         return StCommitMapping(
-            Path(data["prefix"]),
-            Oid(hex=data["subtree_commit"]),
+            Path(project_data["prefix"]),
+            Oid(hex=project_data["subtree_commit"]),
         )
 
     raise YamlParseKeysError(project_name, cid, keys)
