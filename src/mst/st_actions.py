@@ -45,7 +45,7 @@ class YamlParseKeysError(RuntimeError):
     def __init__(self, project_name: str, cid: Oid, keys: set[str]):
         super().__init__(
             f"Unexpected keys in note 'refs/notes/mst/{project_name}:"
-            f"{cid.hex}': {keys}",
+            f"{cid.hex}': {keys}"
         )
 
 

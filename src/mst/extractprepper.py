@@ -65,7 +65,7 @@ class ExtractPrepper:
     ) -> StAction:
         note = self._repo.lookup_note(host_commit_id.hex, ref=NOTES_BRANCH_NAME)
         if note is None:
-            return None
+            return StExtract()
         return parse_st_action(note.message, project_name, host_commit_id)
 
     def _load_extractor(self, project_name: str) -> Extractor:
@@ -100,10 +100,7 @@ class ExtractPrepper:
 
         dfs(
             start_commit,
-            DfsActions(
-                pre_visit=_pre_visit,
-                post_visit=_post_visit,
-            ),
+            DfsActions(pre_visit=_pre_visit, post_visit=_post_visit),
         )
 
         return Extractor(repo=self._repo, mappings=roots, actions=actions)
