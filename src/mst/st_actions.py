@@ -58,15 +58,18 @@ def st_action_from_record(text: str, project_name: str, cid: Oid) -> StAction:
     if project_data is None:
         return StExtract()
 
-    keys = set(project_data.keys())
-    if keys == {"add"}:
-        return StNew(Path(project_data["add"]))
-    if keys == {"move"}:
-        return StMove(Path(project_data["move"]))
-    if keys == {"prefix", "subtree_commit"}:
+    record_type = project_data["type"]
+    if record_type == "new":
+        return StNew(Path(project_data["prefix"]))
+    if record_type == "move":
+        return StMove(
+            Path(project_data["old_prefix"]),
+            Path(project_data["new_prefix"]),
+        )
+    if record_type == "commit_mapping":
         return StCommitMapping(
             Path(project_data["prefix"]),
-            Oid(hex=project_data["subtree_commit"]),
+            Oid(hex=project_data["subtree_commit_id"]),
         )
 
     raise YamlParseKeysError(project_name, cid, keys)
@@ -81,6 +84,7 @@ def serialize_st_action(action: StAction) -> dict:
 @serialize_st_action.register
 def _(action: StCommitMapping) -> dict:
     return {
+        "type": "commit_mapping",
         "prefix": action.prefix,
         "subtree_commit": action.subtree_commit_id.hex,
     }
@@ -88,12 +92,19 @@ def _(action: StCommitMapping) -> dict:
 
 @serialize_st_action.register
 def _(action: StNew) -> dict:
-    return {"new": action.prefix}
+    return {
+        "type": "new",
+        "prefix": action.prefix,
+    }
 
 
 @serialize_st_action.register
 def _(action: StMove) -> dict:
-    return {"move": action.new_prefix}
+    return {
+        "type": "move",
+        "old_prefix": action.old_prefix,
+        "new_prefix": action.new_prefix,
+    }
 
 
 def record_actions(
