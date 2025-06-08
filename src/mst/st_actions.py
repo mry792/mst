@@ -7,7 +7,12 @@ import yaml
 from pygit2 import Oid
 from pygit2.repository import Repository
 
-from mst.helpers import NOTES_BRANCH_NAME
+from mst.helpers import (
+    NOTES_BRANCH_NAME,
+    HostOid,
+    fetch_mst_notes,
+    push_mst_notes,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +34,7 @@ class StMove:
     new_prefix: Path
 
 
+@dataclass(frozen=True)
 class StExtract:
     pass
 
@@ -41,38 +47,38 @@ class YamlParseTypeError(RuntimeError):
         super().__init__(f"unexpected data type '{data_type}'")
 
 
-class YamlParseKeysError(RuntimeError):
-    def __init__(self, project_name: str, cid: Oid, keys: set[str]):
-        super().__init__(
-            f"Unexpected keys in note 'refs/notes/mst/{project_name}:"
-            f"{cid.hex}': {keys}",
+class StParseError(RuntimeError):
+    def __init__(self, data: dict):
+        super().__init__(f'Failed to parse ST action data: "{data}"')
+
+
+def parse_st_action(data: dict | None) -> StAction:
+    if data is None:
+        return StExtract()
+
+    action_type = data["type"]
+    if action_type == "new":
+        return StNew(Path(data["prefix"]))
+    if action_type == "move":
+        return StMove(
+            Path(data["old_prefix"]),
+            Path(data["new_prefix"]),
+        )
+    if action_type == "commit_mapped":
+        return StCommitMapped(
+            Path(data["prefix"]),
+            Oid(hex=data["subtree_commit_id"]),
         )
 
+    raise StParseError(data)
 
-def st_action_from_record(text: str, project_name: str, cid: Oid) -> StAction:
+
+def st_action_from_record(text: str, project_name: str) -> StAction:
     data = yaml.safe_load(text)
     if not isinstance(data, dict):
         raise YamlParseTypeError(type(data))
 
-    project_data = data.get(project_name, None)
-    if project_data is None:
-        return StExtract()
-
-    record_type = project_data["type"]
-    if record_type == "new":
-        return StNew(Path(project_data["prefix"]))
-    if record_type == "move":
-        return StMove(
-            Path(project_data["old_prefix"]),
-            Path(project_data["new_prefix"]),
-        )
-    if record_type == "commit_mapped":
-        return StCommitMapped(
-            Path(project_data["prefix"]),
-            Oid(hex=project_data["subtree_commit_id"]),
-        )
-
-    raise YamlParseKeysError(project_name, cid, keys)
+    return parse_st_action(data.get(project_name, None))
 
 
 @singledispatch
@@ -107,28 +113,57 @@ def _(action: StMove) -> dict:
     }
 
 
+def _sumarize_project_actions(data: dict) -> str:
+    if data:
+        return "\n".join(
+            f"  - {proj}: {action_data['type']}"
+            for proj, action_data in data.items()
+        )
+    return "  (none)"
+
+
+def serialize_st_actions(project_actions: dict[str, StAction]) -> dict:
+    result = {}
+
+    for project_name, action in project_actions.items():
+        logger.debug(f"Recording action: {project_name}: {action}")
+        action_data = serialize_st_action(action)
+        result[project_name] = action_data
+
+    return result
+
+
 def record_actions(
     repo: Repository,
-    project_name: str,
-    actions: dict[Oid, StAction],
+    host_oid: HostOid,
+    project_actions: dict[str, StAction],
+):
+    note = repo.lookup_node(host_oid.hex, ref=NOTES_BRANCH_NAME) or ""
+    data = yaml.safe_load(note.message) or {}
+
+    logger.debug(
+        f'Prior actions for commit "{host_oid.hex}":\n'
+        f"{_sumarize_project_actions(data)}",
+    )
+
+    data.update(serialize_st_actions(project_actions))
+
+    logger.debug(f'Recording {len(data)} actions for commit "{host_oid.hex}".')
+    repo.create_note(
+        yaml.dump(data),
+        author=repo.default_signature,
+        committer=repo.default_signature,
+        annotated_id=host_oid.hex,
+        ref=NOTES_BRANCH_NAME,
+    )
+
+
+def save_actions(
+    repo: Repository,
+    host_oid: HostOid,
+    project_actions: dict[str, StAction],
     remote_name: str = "origin",
 ):
-    remote = repo.remotes[remote_name]
-    notes_refspec = f"{NOTES_BRANCH_NAME}:{NOTES_BRANCH_NAME}"
-
-    logger.debug(f'Fetching existing notes for subtree "{project_name}".')
-    remote.fetch([notes_refspec], depth=1)  # TODO: Might fail?
-
-    for cid, action in actions.items():
-        note_text = serialize_st_action(action)
-        logger.debug(f'Adding note to "{cid.hex}":\n{note_text}')
-        repo.create_note(
-            note_text,
-            author=repo.default_signature,
-            committer=repo.default_signature,
-            annotated_id=cid.hex,
-            ref=NOTES_BRANCH_NAME,
-        )
-
-    logger.info(f'Notes created. Pushing to remote "{remote_name}".')
-    remote.push([notes_refspec])
+    fetch_mst_notes(repo, remote_name)
+    record_actions(repo, host_oid, project_actions)
+    push_mst_notes(repo, remote_name)
