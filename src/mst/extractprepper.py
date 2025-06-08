@@ -1,6 +1,6 @@
 import logging
 
-from pygit2 import Commit, Oid
+from pygit2 import Commit
 from pygit2.repository import Repository
 
 from mst.extractor import Extractor
@@ -11,7 +11,7 @@ from mst.git_utils import (
     find_commit_for_ref,
     is_grafted,
 )
-from mst.helpers import NOTES_BRANCH_NAME, ProjectMetadata
+from mst.helpers import NOTES_BRANCH_NAME, HostOid, ProjectMetadata
 from mst.st_actions import (
     StAction,
     StCommitMapped,
@@ -67,37 +67,38 @@ class ExtractPrepper:
     def _load_st_action(
         self,
         project_name: str,
-        host_commit_id: Oid,
+        host_oid: HostOid,
     ) -> StAction:
-        note = self._repo.lookup_note(host_commit_id.hex, ref=NOTES_BRANCH_NAME)
+        note = self._repo.lookup_note(host_oid.hex, ref=NOTES_BRANCH_NAME)
         if note is None:
             return StExtract()
-        return st_action_from_record(note.message, project_name, host_commit_id)
+        return st_action_from_record(note.message, project_name)
 
     def _load_extractor(self, project_name: str) -> Extractor:
-        roots: dict[Oid, StCommitMapped] = {}
-        actions_unsorted: dict[Oid, StAction] = {}
-        actions: list[tuple[Oid, StAction]] = []
+        roots: dict[HostOid, StCommitMapped] = {}
+        actions_unsorted: dict[HostOid, StAction] = {}
+        actions: list[tuple[HostOid, StAction]] = []
 
         def _pre_visit(commit: Commit) -> bool:
-            st_action = self._load_st_action(project_name, commit.id)
+            commit_id = HostOid(commit.id)
+            st_action = self._load_st_action(project_name, commit_id)
             if isinstance(st_action, StCommitMapped):
-                roots[commit.id] = st_action
+                roots[commit_id] = st_action
                 return False
 
             if isinstance(st_action, StNew):
-                actions.append((commit.id, st_action))
+                actions.append((commit_id, st_action))
                 return False
 
             if is_grafted(commit):
-                raise GraftedError(commit.id)
+                raise GraftedError(commit_id)
 
-            actions_unsorted[commit.id] = st_action
+            actions_unsorted[commit_id] = st_action
 
             return True
 
         def _post_visit(commit: Commit):
-            cid = commit.id
+            cid = HostOid(commit.id)
             actions.append((cid, actions_unsorted.pop(cid)))
 
         start_commit = self._repo[self._start_cid]
@@ -108,6 +109,7 @@ class ExtractPrepper:
             start_commit,
             DfsActions(pre_visit=_pre_visit, post_visit=_post_visit),
         )
+        assert len(actions_unsorted) == 0
 
         return Extractor(repo=self._repo, mappings=roots, actions=actions)
 

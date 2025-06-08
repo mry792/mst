@@ -70,8 +70,11 @@ def _dfs_visit_commit(
     actions: DfsActions,
 ):
     current_status = commit_visits.get(current.id, VisitStatus.NOT_VISITED)
+
     if current_status == VisitStatus.VISITED:
+        # Might be the case if we have a split then a merge.
         return
+
     if current_status == VisitStatus.VISITING:
         raise CycleError(current)
 

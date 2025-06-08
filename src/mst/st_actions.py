@@ -4,12 +4,12 @@ from functools import singledispatch
 from pathlib import Path
 
 import yaml
-from pygit2 import Oid
 from pygit2.repository import Repository
 
 from mst.helpers import (
     NOTES_BRANCH_NAME,
     HostOid,
+    SubtreeOid,
     fetch_mst_notes,
     push_mst_notes,
 )
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 @dataclass(frozen=True)
 class StCommitMapped:
     prefix: Path
-    subtree_commit_id: Oid
+    subtree_commit_id: SubtreeOid
 
 
 @dataclass(frozen=True)
@@ -67,14 +67,14 @@ def parse_st_action(data: dict | None) -> StAction:
     if action_type == "commit_mapped":
         return StCommitMapped(
             Path(data["prefix"]),
-            Oid(hex=data["subtree_commit_id"]),
+            SubtreeOid(hex=data["subtree_commit_id"]),
         )
 
     raise StParseError(data)
 
 
 def st_action_from_record(text: str, project_name: str) -> StAction:
-    data = yaml.safe_load(text)
+    data = yaml.safe_load(text) or {}
     if not isinstance(data, dict):
         raise YamlParseTypeError(type(data))
 
