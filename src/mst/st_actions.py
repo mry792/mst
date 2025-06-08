@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
-class StCommitMapping:
+class StCommitMapped:
     prefix: Path
     subtree_commit_id: Oid
 
@@ -33,7 +33,7 @@ class StExtract:
     pass
 
 
-type StAction = StCommitMapping | StNew | StMove | StExtract
+type StAction = StCommitMapped | StNew | StMove | StExtract
 
 
 class YamlParseTypeError(RuntimeError):
@@ -66,8 +66,8 @@ def st_action_from_record(text: str, project_name: str, cid: Oid) -> StAction:
             Path(project_data["old_prefix"]),
             Path(project_data["new_prefix"]),
         )
-    if record_type == "commit_mapping":
-        return StCommitMapping(
+    if record_type == "commit_mapped":
+        return StCommitMapped(
             Path(project_data["prefix"]),
             Oid(hex=project_data["subtree_commit_id"]),
         )
@@ -82,9 +82,9 @@ def serialize_st_action(action: StAction) -> dict:
 
 
 @serialize_st_action.register
-def _(action: StCommitMapping) -> dict:
+def _(action: StCommitMapped) -> dict:
     return {
-        "type": "commit_mapping",
+        "type": "commit_mapped",
         "prefix": action.prefix,
         "subtree_commit": action.subtree_commit_id.hex,
     }

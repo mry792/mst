@@ -3,13 +3,13 @@ from dataclasses import dataclass
 from pygit2 import Oid
 from pygit2.repository import Repository
 
-from mst.st_actions import StAction, StCommitMapping
+from mst.st_actions import StAction, StCommitMapped
 
 
 @dataclass
 class Extractor:
     repo: Repository
-    mappings: dict[Oid, StCommitMapping]
+    mappings: dict[Oid, StCommitMapped]
     actions: list[tuple[Oid, StAction]]
 
     def extract(self) -> Oid:

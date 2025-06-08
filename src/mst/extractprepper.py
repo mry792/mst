@@ -14,7 +14,7 @@ from mst.git_utils import (
 from mst.helpers import NOTES_BRANCH_NAME, ProjectMetadata
 from mst.st_actions import (
     StAction,
-    StCommitMapping,
+    StCommitMapped,
     StExtract,
     StNew,
     st_action_from_record,
@@ -75,13 +75,13 @@ class ExtractPrepper:
         return st_action_from_record(note.message, project_name, host_commit_id)
 
     def _load_extractor(self, project_name: str) -> Extractor:
-        roots: dict[Oid, StCommitMapping] = {}
+        roots: dict[Oid, StCommitMapped] = {}
         actions_unsorted: dict[Oid, StAction] = {}
         actions: list[tuple[Oid, StAction]] = []
 
         def _pre_visit(commit: Commit) -> bool:
             st_action = self._load_st_action(project_name, commit.id)
-            if isinstance(st_action, StCommitMapping):
+            if isinstance(st_action, StCommitMapped):
                 roots[commit.id] = st_action
                 return False
 
