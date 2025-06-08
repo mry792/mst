@@ -5,7 +5,7 @@ description = ""
 authors = [
     {name = "M. Emery Goss", email = "m.goss792@gmail.com"}
 ]
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.10,<3.13"
 
 [tool.poetry.group.dev.dependencies]
 pyright = "^1.1.399"
@@ -58,7 +58,7 @@ select = [
     "FBT",     # flake8-boolean-trap
     "B",       # flake8-bugbear
     "A",       # flake8-builtins
-    "COM",     # flake8-commas
+    "COM818",  # flake8-commas
     "C4",      # flake8-comprehensions
     "DTZ",     # flake8-datetimez
     "T10",     # flake8-debugger
