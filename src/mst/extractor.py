@@ -184,6 +184,16 @@ class Extractor:
 
         self._save_mapping(HostOid(host_commit.id), prefix, SubtreeOid(st_oid))
 
+    def _do_extraction(self, host_commit: HostCommit, prefix: Path):
+        st_parents = self._get_subtree_parents(host_commit)
+
+        if self._is_new_st_commit_needed(host_commit, prefix, st_parents):
+            self._make_new_st_commit(host_commit, prefix, st_parents)
+        else:
+            host_oid = HostOid(host_commit.id)
+            st_oid = SubtreeOid(st_parents[0].id)
+            self._save_mapping(host_oid, prefix, st_oid)
+
     @singledispatchmethod
     def _do_action(self, st_action: StAction, host_commit: HostCommit):
         # Function signature - not implemented.
@@ -200,27 +210,11 @@ class Extractor:
 
     @_do_action.register
     def _(self, st_action: StMove, host_commit: HostCommit):
-        prefix = st_action.new_prefix
-        st_parents = self._get_subtree_parents(host_commit)
-
-        if self._is_new_st_commit_needed(host_commit, prefix, st_parents):
-            self._make_new_st_commit(host_commit, prefix, st_parents)
-        else:
-            host_oid = HostOid(host_commit.id)
-            st_oid = SubtreeOid(st_parents[0].id)
-            self._save_mapping(host_oid, prefix, st_oid)
+        self._do_extraction(host_commit, st_action.new_prefix)
 
     @_do_action.register
     def _(self, _: StExtract, host_commit: HostCommit):
-        prefix = self._get_prefix(host_commit)
-        st_parents = self._get_subtree_parents(host_commit)
-
-        if self._is_new_st_commit_needed(host_commit, prefix, st_parents):
-            self._make_new_st_commit(host_commit, prefix, st_parents)
-        else:
-            host_oid = HostOid(host_commit.id)
-            st_oid = SubtreeOid(st_parents[0].id)
-            self._save_mapping(host_oid, prefix, st_oid)
+        self._do_extraction(host_commit, self._get_prefix(host_commit))
 
     def extract(self) -> SubtreeOid:
         for host_cid, action in self.actions:
