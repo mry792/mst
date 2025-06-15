@@ -4,6 +4,7 @@ from functools import singledispatchmethod
 from pathlib import Path
 from typing import TypeVar
 
+from click import progress_bar
 from pygit2 import Commit
 from pygit2.repository import Repository
 
@@ -217,8 +218,9 @@ class Extractor:
         self._do_extraction(host_commit, self._get_prefix(host_commit))
 
     def extract(self) -> SubtreeOid:
-        for host_cid, action in self.actions:
-            self._do_action(action, HostCommit(self.repo[host_cid]))
+        with progress_bar(self.actions, label="extracting") as bar:
+            for host_cid, action in bar:
+                self._do_action(action, HostCommit(self.repo[host_cid]))
 
         last_host_cid = self.actions[-1][0]
         return self.mappings[last_host_cid].subtree_commit_id

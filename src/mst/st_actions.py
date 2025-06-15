@@ -116,8 +116,7 @@ def _(action: StMove) -> dict:
 def _sumarize_project_actions(data: dict) -> str:
     if data:
         return "\n".join(
-            f"  - {proj}: {action_data['type']}"
-            for proj, action_data in data.items()
+            f"  - {proj}: {action_data}" for proj, action_data in data.items()
         )
     return "  (none)"
 
@@ -126,7 +125,7 @@ def serialize_st_actions(project_actions: dict[str, StAction]) -> dict:
     result = {}
 
     for project_name, action in project_actions.items():
-        logger.debug(f"Recording action: {project_name}: {action}")
+        logger.debug(f"Serializing action: {project_name}: {action}")
         action_data = serialize_st_action(action)
         result[project_name] = action_data
 
@@ -138,7 +137,7 @@ def record_actions(
     host_oid: HostOid,
     project_actions: dict[str, StAction],
 ):
-    note = repo.lookup_node(host_oid.hex, ref=NOTES_BRANCH_NAME) or ""
+    note = repo.lookup_note(host_oid.hex, ref=NOTES_BRANCH_NAME) or ""
     data = yaml.safe_load(note.message) or {}
 
     logger.debug(
