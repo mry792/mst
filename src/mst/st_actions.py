@@ -30,7 +30,7 @@ class StNew:
 
 @dataclass(frozen=True)
 class StMove:
-    old_prefix: Path
+    # old_prefix: Path
     new_prefix: Path
 
 
@@ -61,7 +61,7 @@ def parse_st_action(data: dict | None) -> StAction:
         return StNew(Path(data["prefix"]))
     if action_type == "move":
         return StMove(
-            Path(data["old_prefix"]),
+            # Path(data["old_prefix"]),
             Path(data["new_prefix"]),
         )
     if action_type == "commit_mapped":
@@ -108,7 +108,7 @@ def _(action: StNew) -> dict:
 def _(action: StMove) -> dict:
     return {
         "type": "move",
-        "old_prefix": action.old_prefix,
+        # "old_prefix": action.old_prefix,
         "new_prefix": action.new_prefix,
     }
 
